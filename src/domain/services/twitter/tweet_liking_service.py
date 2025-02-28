@@ -1,6 +1,6 @@
 from typing import Callable
 from types import MethodType
-from src.domain.entities.tweet import Tweet
+from src.domain.entities.twitter import Tweet
 import src.infrastructure.api_clients.twitter as twitter
 
 
