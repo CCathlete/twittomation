@@ -12,12 +12,14 @@ class TweetLikingService:
     def __init__(
         self,
         twitter_api_client: twitter.ApiClient,
-        engagement_criteria: Callable[[Tweet], bool],
     ):
         self.twitter_api_client = twitter_api_client
-        self.engagement_criteria = engagement_criteria
 
-    def like_tweet(self, tweet: Tweet) -> bool:
+    def like_tweet(
+        self,
+        tweet: Tweet,
+        engagement_criteria: Callable[[Tweet], bool],
+    ) -> bool:
         """
         If the tweet meets the engagement criteria, it likes the
         tweet and returns True, otherwise returns False.
@@ -25,7 +27,7 @@ class TweetLikingService:
         # We bind the engagement criteria as a method of the actual
         # tweet instance.
         bound_engagement_criteria: Callable[[], bool] = MethodType(
-            self.engagement_criteria,
+            engagement_criteria,
             tweet,
         )
         if not bound_engagement_criteria():
@@ -36,7 +38,7 @@ class TweetLikingService:
 
         # Since the tweet meets the criteria, we call the api client
         # to like it.
-        success: bool = self.twitter_api_client.like_tweet(tweet.tweet_id)
+        success: bool = self.twitter_api_client.like_tweet(tweet)
         if success:
             # If the request was successful, we update the inner
             # tweet entity.
