@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 from typing import Union
+from typing_extensions import TypeAlias
+
+TweetID: TypeAlias = Union[str, int]
 
 
 class Tweet:
@@ -9,7 +12,7 @@ class Tweet:
 
     def __init__(
         self,
-        tweet_id: Union[str, int],
+        tweet_id: TweetID,
         author_id: Union[str, int],
         content: str,
         created_at: datetime,
