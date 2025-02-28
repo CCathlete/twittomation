@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Union
 from typing_extensions import TypeAlias
 
-TweetID: TypeAlias = Union[str, int]
+Id: TypeAlias = Union[str, int]
 
 
 class Tweet:
@@ -12,14 +12,14 @@ class Tweet:
 
     def __init__(
         self,
-        tweet_id: TweetID,
-        author_id: Union[str, int],
+        tweet_id: Id,
+        author_id: Id,
         content: str,
         created_at: datetime,
         like_count: int = 0,
     ) -> None:
-        self.tweet_id: Union[str, int] = tweet_id
-        self.author_id: Union[str, int] = author_id
+        self.tweet_id: Id = tweet_id
+        self.author_id: Id = author_id
         self.content: str = content
         self.created_at: datetime = created_at
         self.like_count: int = like_count
