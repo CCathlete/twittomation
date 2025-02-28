@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Union
 
 
 class Tweet:
@@ -8,14 +9,14 @@ class Tweet:
 
     def __init__(
         self,
-        tweet_id: str,
-        author_id: str,
+        tweet_id: Union[str, int],
+        author_id: Union[str, int],
         content: str,
         created_at: datetime,
         like_count: int = 0,
     ) -> None:
-        self.tweet_id: str = tweet_id
-        self.author_id: str = author_id
+        self.tweet_id: Union[str, int] = tweet_id
+        self.author_id: Union[str, int] = author_id
         self.content: str = content
         self.created_at: datetime = created_at
         self.like_count: int = like_count

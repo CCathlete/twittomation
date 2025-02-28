@@ -10,5 +10,10 @@ from src.domain.services.twitter.tweet_liking_service import TweetLikingService
 
 class LikeATweet:
 
-    def __init__(self, twitter_api_client: twitter.ApiClient, twitter) -> None:
+    def __init__(
+        self,
+        twitter_api_client: twitter.ApiClient,
+        tweet_liking_service: TweetLikingService,
+        tweet_id: str,
+    ) -> None:
         pass
