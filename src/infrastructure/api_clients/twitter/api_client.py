@@ -149,8 +149,6 @@ class ApiClient:
             - True if the tweet was unliked successfully.
             - False if an error occurred after all retries.
         """
-        # TODO: Add a check if the tweet is liked, otherwise there's
-        # no need for unliking and we can return True
         attempts_left: int = retries + 1
         current_attempt: int = 1
         above_limit: bool
@@ -165,6 +163,14 @@ class ApiClient:
                 self.api.destroy_favorite(id=tweet.tweet_id)
                 return True
             except errors.TweepyException as e:
+                # TODO: Check error string in a case we unlike a
+                # tweet we have not liked.
+
+                # If the tweet is not liked, we can return True without retrying.
+                if "not favorited" or "not liked" in str(e):
+                    print(f"Tweet {tweet.tweet_id} is not liked.")
+                    return True
+
                 print(
                     f"Attempt to unlike tweet {tweet.tweet_id}",
                     f"failed, {attempts_left}",
