@@ -1,12 +1,18 @@
 import time
-from tweepy import OAuth1UserHandler, API, Tweet, errors  # type: ignore
+from tweepy import (  # type: ignore
+    OAuth1UserHandler,
+    Client,
+    Tweet,
+    errors,
+    Response,
+)
 from src.domain.entities.twitter import Tweet, Id
-from typing_extensions import TypeAlias
+from typing import Optional
 
 
 class ApiClient:
     """
-    An object that represents a user of the Twitter API.
+    An object that represents a user of the Twitter Client.
     """
 
     def __init__(
@@ -29,50 +35,48 @@ class ApiClient:
             access_token=self.access_token,
             access_token_secret=self.access_token_secret,
         )
-        self.api: API = API(self.auth)
+        self.client: Client = Client(self.auth)
 
-    def _is_above_rate_limit(
+        # Storing request quotas per endpoint.
+        # {endpoint: (remaining_requests, reset_time)}
+        self.request_quotas: dict[str, tuple[int, int]] = {}
+
+    def _update_request_quota(
         self,
+        response: Response,
+    ) -> None:
+        """
+        Updating stored rate limits after an API request.
+        """
+        if response and "x-rate-limit-remaining" in response.headers:
+            remaining = int(
+                response.headers["x-rate-limit-remaining"],
+            )
+            reset_time = int(response.headers["x-rate-limit-reset"])
+            # We're storing the uri of the endpoint as the key in our # rate limit dict.
+            endpoint = response.request.url
+            self.request_quotas[endpoint] = (remaining, reset_time)
+
+    def _is_above_request_quota(
+        self,
+        endpoint: str,
     ) -> tuple[bool, int]:
         """
         Checking if we have reached the rate limit for a specific
-        resource and endpoint, returning a tuple (bool, int):
+        endpoint, returning a tuple (bool, int):
             - (False, -1) if there are remaining requests.
             - (True, reset_time) if the rate limit is exceeded.
         """
-        above_limit: bool = False
+        exceeded_quota: bool = False
         reset_time: int = -1
-        response_headers: dict[str, str] = self.api.last_response.headers
-        # Checking the headers from the last api call. If there was no
-        # last api call, we assume that the rate limit is not
-        # exceeded.
-        if response_headers:
-            # we're using the dict.get method to avoid KeyError
-            # exceptions using default values.
-            remaining_requests: int = int(
-                response_headers.get("x-rate-limit-remaining", 1),
-            )  # If default value was used or remaining requests != 0
-            # We'll skip the next condition and return
-            # above_limit, reset_time == False, -1
+        remaining_requests: int
+        if endpoint in self.request_quotas:
+            remaining_requests, reset_time = self.request_quotas[endpoint]
+            exceeded_quota = remaining_requests == 0
 
-            if remaining_requests == 0:
-                above_limit = True
-                reset_time = int(
-                    response_headers.get(
-                        "x-rate-limit-reset",
-                        time.time(),
-                    ),
-                )  # We'll return above_limit, reset_time ==
-                # True, reset_time
-        else:
-            print(
-                "No last response available\n",
-                "[INFO] Assuming rate limit not exceeded.",
-            )  # above_limit, reset_time == False, -1
+        return exceeded_quota, reset_time
 
-        return above_limit, reset_time
-
-    def _wait_for_rate_limit_reset(
+    def _wait_for_request_quota_reset(
         self,
         reset_time: int,
     ) -> None:
@@ -82,7 +86,7 @@ class ApiClient:
         # Using max to avoid negative wait times.
         wait_time: float = max(0, reset_time - time.time())
         print(
-            "Rate limit exceeded.",
+            "[INFO] Rate limit exceeded.",
             f" Waiting for {wait_time:.2f} seconds.",
         )
         time.sleep(wait_time)
@@ -94,7 +98,7 @@ class ApiClient:
     ) -> bool:
         """
         Handles the action of liking a tweet, with retries if
-        rate-limited.
+        request quota is exceeded.
 
         Args:
             tweet (Tweet): The tweet to like.
@@ -106,20 +110,35 @@ class ApiClient:
         """
         attempts_left: int = retries + 1
         current_attempt: int = 1
-        above_limit: bool
+        exceeded_quota: bool
         reset_time: int
+        endpoint: str = (
+            f"https://api.twitter.com/2/users/{self.client.get_me().data.id}/likes"
+        )
+
         while attempts_left > 0:
             attempts_left -= 1
-            above_limit, reset_time = self._is_above_rate_limit()
-            if above_limit:
-                self._wait_for_rate_limit_reset(reset_time)
+            exceeded_quota, reset_time = self._is_above_request_quota(
+                endpoint,
+            )
+            if exceeded_quota:
+                self._wait_for_request_quota_reset(reset_time)
 
             try:
-                self.api.create_favorite(id=tweet.tweet_id)
+                # Sending a request to like the tweet.
+                response: Response = self.client.like(tweet.tweet_id)
+                self._update_request_quota(response)
                 return True
+            except errors.TooManyRequests as e:
+                print(
+                    f"[ERROR] Request quota exceeded: {e}",
+                    "Retry after reset duration passes.",
+                )
+                # Making sure we hold the most recent reset time.
+                self._update_request_quota(e.response)
             except errors.TweepyException as e:
                 print(
-                    f"Attempt to like tweet {tweet.tweet_id}",
+                    f"[ERROR] Attempt to like tweet {tweet.tweet_id}",
                     f"failed, {attempts_left}",
                     f"attempts left: {e}",
                 )
@@ -138,8 +157,8 @@ class ApiClient:
         retries: int = 3,
     ) -> bool:
         """
-        Handles the action of unliking a tweet, with retries if
-        rate-limited.
+        Handles the action of liking a tweet, with retries if
+        request quota is exceeded.
 
         Args:
             tweet (Tweet): The tweet to unlike.
@@ -151,23 +170,38 @@ class ApiClient:
         """
         attempts_left: int = retries + 1
         current_attempt: int = 1
-        above_limit: bool
+        exceeded_quota: bool
         reset_time: int
+        endpoint: str = (
+            f"https://api.twitter.com/2/users/{self.client.get_me().data.id}/likes"
+        )
+
         while attempts_left > 0:
             attempts_left -= 1
-            above_limit, reset_time = self._is_above_rate_limit()
-            if above_limit:
-                self._wait_for_rate_limit_reset(reset_time)
+            exceeded_quota, reset_time = self._is_above_request_quota(
+                endpoint,
+            )
+            if exceeded_quota:
+                self._wait_for_request_quota_reset(reset_time)
 
             try:
-                self.api.destroy_favorite(id=tweet.tweet_id)
+                # Sending a request to unlike the tweet.
+                response: Response = self.client.unlike(tweet.tweet_id)
+                self._update_request_quota(response)
                 return True
+            except errors.TooManyRequests as e:
+                print(
+                    f"[ERROR] Request quota exceeded: {e}",
+                    "Retry after reset duration passes.",
+                )
+                # Making sure we hold the most recent reset time.
+                self._update_request_quota(e.response)
             except errors.TweepyException as e:
                 # TODO: Check error string in a case we unlike a
                 # tweet we have not liked.
 
                 # If the tweet is not liked, we can return True without retrying.
-                if "not favorited" or "not liked" in str(e):
+                if "not liked" in str(e):
                     print(f"Tweet {tweet.tweet_id} is not liked.")
                     return True
 
@@ -188,12 +222,34 @@ class ApiClient:
     def get_tweet_by_id(
         self,
         tweet_id: Id,
-    ) -> dict[str, str]:
+    ) -> Optional[dict[str, str]]:
         """
-        Checking if we have reached the rate limit for a specific
-        resource and endpoint, returning a tuple (bool, int):
-        - bool: True if rate limit exceeded, False otherwise
-        - int: The reset time if rate limit exceeded, 0 if not
+        Fetches tweet data by ID.
+
+        Returns:
+            - The tweet data as a dictionary.
+            - None if the tweet could not be fetched.
         """
-        tweet_data: dict[str, str]
+        tweet_data: Optional[dict[str, str]] = None
+        exceeded_quota: bool
+        reset_time: int  # Timestamp of when the rate limit will
+        # reset.
+        endpoint: str = f"https://api.twitter.com/2/tweets"
+        exceeded_quota, reset_time = self._is_above_request_quota(
+            endpoint,
+        )
+        if exceeded_quota:
+            self._wait_for_request_quota_reset(reset_time)
+
+        try:
+            response: Response = self.client.get_tweet(
+                id=tweet_id,
+            )
+            self._update_request_quota(response)
+            # TODO: verify that response.data is a dict.
+            tweet_data = response.data
+
+        except errors.TweepyException as e:
+            print(f"[ERROR] Failed to fetch tweet {tweet_id}: {e}")
+
         return tweet_data

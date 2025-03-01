@@ -30,7 +30,9 @@ class LikeATweet:
         """
         Fetches a tweet by its ID using the twitter api client.
         """
-        tweet_data: dict[str, str] = self.twitter_api_client.get_tweet_by_id(tweet_id)
+        tweet_data: Optional[dict[str, str]] = self.twitter_api_client.get_tweet_by_id(
+            tweet_id
+        )
         if tweet_data:
             # Currently, tweets' creation timestamps are of the
             # format: "Wed Jun 19 02:39:57 +0000 2019"
