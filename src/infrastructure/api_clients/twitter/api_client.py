@@ -4,22 +4,6 @@ from src.domain.entities.twitter import Tweet, Id
 from typing_extensions import TypeAlias
 
 
-EndpointInfo: TypeAlias = dict[str, int]
-"""
-Type: dict[str, int]
-"""
-Resource: TypeAlias = dict[str, EndpointInfo]
-"""
-Type: dict[str, EndpointInfo]
-"""
-ResourcesDict: TypeAlias = dict[str, Resource]
-"""
-Type: dict[str, Resource]\n
-Resource: dict[str, EndpointInfo]\n
-EndpointInfo: dict[str, int]\n
-"""
-
-
 class ApiClient:
     """
     An object that represents a user of the Twitter API.
@@ -49,33 +33,42 @@ class ApiClient:
 
     def _is_above_rate_limit(
         self,
-        resource_name: str,
-        endpoint_uri: str,
     ) -> tuple[bool, int]:
         """
         Checking if we have reached the rate limit for a specific
         resource and endpoint, returning a tuple (bool, int):
-        - bool: True if rate limit exceeded, False otherwise
-        - int: The reset time if rate limit exceeded, 0 if not
+            - (False, -1) if there are remaining requests.
+            - (True, reset_time) if the rate limit is exceeded.
         """
         above_limit: bool = False
-        reset_time: int = 0
-        try:
-            # Contains informatino about status pf a specific
-            # resource.
-            info_json: ResourcesDict = self.api.rate_limit_status(
-                resources=[resource_name],
-            )
-            resource: Resource = info_json[resource_name]
-            endpoint: EndpointInfo = resource[endpoint_uri]
-            remaining_requests: int = endpoint["remaining"]
-            reset_time = endpoint["reset"]
-            print(f"Remaining requests for {resource_name}: {remaining_requests}")
+        reset_time: int = -1
+        response_headers: dict[str, str] = self.api.last_response.headers
+        # Checking the headers from the last api call. If there was no
+        # last api call, we assume that the rate limit is not
+        # exceeded.
+        if response_headers:
+            # we're using the dict.get method to avoid KeyError
+            # exceptions using default values.
+            remaining_requests: int = int(
+                response_headers.get("x-rate-limit-remaining", 1),
+            )  # If default value was used or remaining requests != 0
+            # We'll skip the next condition and return
+            # above_limit, reset_time == False, -1
+
             if remaining_requests == 0:
                 above_limit = True
-
-        except errors.TweepyException as e:
-            print(f"Failed to get rate limit status: {e}.")
+                reset_time = int(
+                    response_headers.get(
+                        "x-rate-limit-reset",
+                        time.time(),
+                    ),
+                )  # We'll return above_limit, reset_time ==
+                # True, reset_time
+        else:
+            print(
+                "No last response available\n",
+                "[INFO] Assuming rate limit not exceeded.",
+            )  # above_limit, reset_time == False, -1
 
         return above_limit, reset_time
 
