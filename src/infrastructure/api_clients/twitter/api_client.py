@@ -72,21 +72,112 @@ class ApiClient:
 
         return above_limit, reset_time
 
-    def like_tweet(self, tweet: Tweet) -> bool:
+    def _wait_for_rate_limit_reset(
+        self,
+        reset_time: int,
+    ) -> None:
         """
-        Handles the action of liking a tweet.
+        Waits for the rate limit to reset.
         """
-        success: bool
+        # Using max to avoid negative wait times.
+        wait_time: float = max(0, reset_time - time.time())
+        print(
+            "Rate limit exceeded.",
+            f" Waiting for {wait_time:.2f} seconds.",
+        )
+        time.sleep(wait_time)
 
-        return success
-
-    def unlike_tweet(self, tweet: Tweet) -> bool:
+    def like_tweet(
+        self,
+        tweet: Tweet,
+        retries: int = 3,
+    ) -> bool:
         """
-        Handles the action of unliking a tweet.
-        """
-        success: bool
+        Handles the action of liking a tweet, with retries if
+        rate-limited.
 
-        return success
+        Args:
+            tweet (Tweet): The tweet to like.
+            retries (int): Number of retry attempts if the request fails.
+
+        Returns:
+            - True if the tweet was liked successfully.
+            - False if an error occurred after all retries.
+        """
+        attempts_left: int = retries + 1
+        current_attempt: int = 1
+        above_limit: bool
+        reset_time: int
+        while attempts_left > 0:
+            attempts_left -= 1
+            above_limit, reset_time = self._is_above_rate_limit()
+            if above_limit:
+                self._wait_for_rate_limit_reset(reset_time)
+
+            try:
+                self.api.create_favorite(id=tweet.tweet_id)
+                return True
+            except errors.TweepyException as e:
+                print(
+                    f"Attempt to like tweet {tweet.tweet_id}",
+                    f"failed, {attempts_left}",
+                    f"attempts left: {e}",
+                )
+                if attempts_left > 0:
+                    # If we were above rate limit, waited, tried to
+                    # like and it failed, we#ll implement exponential
+                    # backoff.
+                    time.sleep(2 ** (current_attempt))
+                    current_attempt += 1
+
+        return False
+
+    def unlike_tweet(
+        self,
+        tweet: Tweet,
+        retries: int = 3,
+    ) -> bool:
+        """
+        Handles the action of unliking a tweet, with retries if
+        rate-limited.
+
+        Args:
+            tweet (Tweet): The tweet to unlike.
+            retries (int): Number of retry attempts if the request fails.
+
+        Returns:
+            - True if the tweet was unliked successfully.
+            - False if an error occurred after all retries.
+        """
+        # TODO: Add a check if the tweet is liked, otherwise there's
+        # no need for unliking and we can return True
+        attempts_left: int = retries + 1
+        current_attempt: int = 1
+        above_limit: bool
+        reset_time: int
+        while attempts_left > 0:
+            attempts_left -= 1
+            above_limit, reset_time = self._is_above_rate_limit()
+            if above_limit:
+                self._wait_for_rate_limit_reset(reset_time)
+
+            try:
+                self.api.destroy_favorite(id=tweet.tweet_id)
+                return True
+            except errors.TweepyException as e:
+                print(
+                    f"Attempt to unlike tweet {tweet.tweet_id}",
+                    f"failed, {attempts_left}",
+                    f"attempts left: {e}",
+                )
+                if attempts_left > 0:
+                    # If we were above rate limit, waited, tried to
+                    # unlike and it failed, we'll implement
+                    # exponential backoff.
+                    time.sleep(2 ** (current_attempt))
+                    current_attempt += 1
+
+        return False
 
     def get_tweet_by_id(
         self,
