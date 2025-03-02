@@ -246,8 +246,8 @@ class ApiClient:
                 id=tweet_id,
             )
             self._update_request_quota(endpoint, response)
-            # TODO: verify that response.data is a dict.
-            tweet_data = response.data
+            # TODO: verify that response["data"] is a dict.
+            tweet_data = response["data"]
 
         except errors.TweepyException as e:
             print(f"[ERROR] Failed to fetch tweet {tweet_id}: {e}")

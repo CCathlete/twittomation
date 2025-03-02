@@ -7,7 +7,7 @@ Id: TypeAlias = Union[str, int]
 
 class Tweet:
     """
-    Represents a tweet and correponding business logic.
+    Represents a tweet and corresponding business logic.
     """
 
     def __init__(
@@ -50,3 +50,14 @@ class Tweet:
 
     def __repr__(self) -> str:
         return f"Tweet(tweet_id={self.tweet_id}, author_id={self.author_id}, content={self.content}, created_at={self.created_at}, like_count={self.like_count})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Tweet):
+            return False
+        return (
+            self.tweet_id == other.tweet_id
+            and self.content == other.content
+            and self.author_id == other.author_id
+            and self.created_at == other.created_at
+            and self.like_count == other.like_count
+        )
