@@ -59,6 +59,7 @@ class LikeATweet:
         if tweet:
             # If we managed to fetch the tweet, we try to like it
             # and if that was successful, success = True.
+            print(f"Liking the tweet.")
             success = self.tweet_liking_service.like_tweet(
                 tweet,
                 self.engagement_criteria,

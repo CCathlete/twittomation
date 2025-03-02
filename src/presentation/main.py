@@ -117,9 +117,7 @@ def main() -> None:
     )
 
     if use_case.execute():
-        print(
-            f"Tweet {tweet_id} was liked successfully at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        print(f"Tweet was liked successfully!")
     else:
         print("Failed to like the tweet.")
 

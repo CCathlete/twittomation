@@ -43,7 +43,6 @@ class TweetLikingService:
             # If the request was successful, we update the inner
             # tweet entity.
             tweet.like()
-            print(f"Tweet {tweet.tweet_id} was liked successfully.")
         else:
             print(f"Request to like tweet {tweet.tweet_id} failed.")
 

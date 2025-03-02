@@ -242,6 +242,7 @@ class ApiClient:
             self._wait_for_request_quota_reset(reset_time)
 
         try:
+            print(f"[INFO] Fetching tweet {tweet_id}")
             response: Response = self.client.get_tweet(
                 id=tweet_id,
             )
