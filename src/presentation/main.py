@@ -58,6 +58,7 @@ def main() -> None:
     use_case: LikeATweet = LikeATweet(
         twitter_api_client=api_client,
         tweet_liking_service=tweet_liking_service,
+        # For future use in case we want to filter out tweets.
         engagement_criteria=lambda tweet: True,
         tweet_id=tweet_id,
     )
