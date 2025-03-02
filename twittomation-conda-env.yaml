@@ -50,13 +50,20 @@ dependencies:
       - exceptiongroup==1.2.2
       - fastapi==0.115.9
       - idna==3.10
+      - iniconfig==2.0.0
       - oauthlib==3.2.2
+      - packaging==24.2
+      - pluggy==1.5.0
       - pydantic==2.10.6
       - pydantic-core==2.27.2
+      - pytest==8.3.4
+      - pytest-mock==3.14.0
+      - python-dotenv==1.0.1
       - requests==2.32.3
       - requests-oauthlib==2.0.0
       - sniffio==1.3.1
       - starlette==0.45.3
+      - tomli==2.2.1
       - tweepy==4.15.0
       - typing-extensions==4.12.2
       - urllib3==2.3.0
