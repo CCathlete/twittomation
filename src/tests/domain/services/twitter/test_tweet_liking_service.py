@@ -25,7 +25,7 @@ def mock_api_client(mocker) -> ptm.MockType:
     return mock_client
 
 
-def test_like_a_tweet(mock_api_client: ptm.MockType) -> None:
+def test_domain_liking_service(mock_api_client: ptm.MockType) -> None:
     """
     Testing the the domain service that modifies the entities when a
     tweet is liked.

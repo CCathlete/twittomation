@@ -37,7 +37,7 @@ def api_client() -> ApiClient:
 
 # Testing using the real api client while using mocker to generate a
 # mock for the tweepy client.
-def test_like_a_tweet(
+def test_api_client_like_tweet(
     mocker: ptm.MockFixture,
     api_client: ApiClient,
 ) -> None:
@@ -49,7 +49,10 @@ def test_like_a_tweet(
     # Registering the mock client with the api client.
     api_client.client = mock_tweepy_client
 
-    mock_tweepy_client.like.return_value = True
+    # Mocking tweepy.Client's response.
+    mock_response = mocker.Mock(tweepy.Response)
+    mock_response.headers = {"x-rate-limit-remaining": "50"}
+    mock_tweepy_client.like_tweet.return_value = mock_response
 
     tweet = Tweet(
         tweet_id="123",
