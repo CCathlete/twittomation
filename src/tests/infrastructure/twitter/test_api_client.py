@@ -10,6 +10,9 @@ import tweepy  # type: ignore
 from src.domain.entities.twitter import Tweet
 from src.infrastructure.api_clients.twitter import ApiClient
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Setting up a fixture for reusability. THIS IS NOT A MOCK.
