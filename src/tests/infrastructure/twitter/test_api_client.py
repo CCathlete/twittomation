@@ -8,7 +8,7 @@ from src.infrastructure.api_clients.twitter import ApiClient
 from datetime import datetime
 
 
-# Setting up a fixture for reusability.
+# Setting up a fixture for reusability. THIS IS NOT A MOCK.
 @pytest.fixture
 def api_client() -> ApiClient:
     return ApiClient(
@@ -46,7 +46,8 @@ def mock_api_client(mocker) -> ptm.MockType:
     return mock_client
 
 
-# Testing using the real api client.
+# Testing using the real api client while using mocker to generate a
+# mock for the tweepy client.
 def test_like_a_tweet(
     mocker: ptm.MockFixture,
     api_client: ApiClient,
