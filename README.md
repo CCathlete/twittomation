@@ -77,8 +77,8 @@ python -m src.presentation.main
 
 ### **Example Output**  
 ```
-[INFO] Fetching tweet with ID 1234567890123456789...
-[INFO] Liking the tweet...
+[INFO] Fetching tweet with ID 1234567890123456789.
+[INFO] Liking the tweet.
 [INFO] Tweet liked successfully!
 ```
 
