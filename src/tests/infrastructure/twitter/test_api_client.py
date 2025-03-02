@@ -71,5 +71,5 @@ def test_api_client_like_tweet(
     )
     result: bool = api_client.like_tweet(tweet)
 
-    mock_tweepy_client.like_tweet.assert_called_once_with(tweet)
+    mock_tweepy_client.like.assert_called_once_with(tweet.tweet_id)
     assert result is True
