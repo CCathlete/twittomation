@@ -9,7 +9,7 @@ import pytest_mock as ptm
 import tweepy  # type: ignore
 from src.domain.entities.twitter import Tweet
 from src.infrastructure.api_clients.twitter import ApiClient
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # Setting up a fixture for reusability. THIS IS NOT A MOCK.
@@ -51,8 +51,16 @@ def test_api_client_like_tweet(
 
     # Mocking tweepy.Client's response.
     mock_response = mocker.Mock(tweepy.Response)
-    mock_response.headers = {"x-rate-limit-remaining": "50"}
-    mock_tweepy_client.like_tweet.return_value = mock_response
+    mock_response.headers = {
+        "x-rate-limit-remaining": "50",
+        "x-rate-limit-reset": str(
+            int(
+                datetime.now(timezone.utc).timestamp(),
+            )
+            + 900
+        ),  # 15 min from now
+    }
+    mock_tweepy_client.like.return_value = mock_response
 
     tweet = Tweet(
         tweet_id="123",

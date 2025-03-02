@@ -43,6 +43,7 @@ class ApiClient:
 
     def _update_request_quota(
         self,
+        endpoint: str,
         response: Response,
     ) -> None:
         """
@@ -54,7 +55,6 @@ class ApiClient:
             )
             reset_time = int(response.headers["x-rate-limit-reset"])
             # We're storing the uri of the endpoint as the key in our # rate limit dict.
-            endpoint = response.request.url
             self.request_quotas[endpoint] = (remaining, reset_time)
 
     def _is_above_request_quota(
@@ -127,7 +127,7 @@ class ApiClient:
             try:
                 # Sending a request to like the tweet.
                 response: Response = self.client.like(tweet.tweet_id)
-                self._update_request_quota(response)
+                self._update_request_quota(endpoint, response)
                 return True
             except errors.TooManyRequests as e:
                 print(
@@ -135,7 +135,7 @@ class ApiClient:
                     "Retry after reset duration passes.",
                 )
                 # Making sure we hold the most recent reset time.
-                self._update_request_quota(e.response)
+                self._update_request_quota(endpoint, e.response)
             except errors.TweepyException as e:
                 print(
                     f"[ERROR] Attempt to like tweet {tweet.tweet_id}",
@@ -187,7 +187,7 @@ class ApiClient:
             try:
                 # Sending a request to unlike the tweet.
                 response: Response = self.client.unlike(tweet.tweet_id)
-                self._update_request_quota(response)
+                self._update_request_quota(endpoint, response)
                 return True
             except errors.TooManyRequests as e:
                 print(
@@ -195,7 +195,7 @@ class ApiClient:
                     "Retry after reset duration passes.",
                 )
                 # Making sure we hold the most recent reset time.
-                self._update_request_quota(e.response)
+                self._update_request_quota(endpoint, e.response)
             except errors.TweepyException as e:
                 # TODO: Check error string in a case we unlike a
                 # tweet we have not liked.
@@ -245,7 +245,7 @@ class ApiClient:
             response: Response = self.client.get_tweet(
                 id=tweet_id,
             )
-            self._update_request_quota(response)
+            self._update_request_quota(endpoint, response)
             # TODO: verify that response.data is a dict.
             tweet_data = response.data
 
